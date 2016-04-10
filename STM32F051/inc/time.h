@@ -7,6 +7,9 @@
 extern uint32_t speed_counter;
 extern uint32_t speed;
 extern uint32_t real_time;
+extern uint32_t start_time;
+extern uint32_t setPoint;
+extern uint8_t tempAlarmTimer;
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
 void Delay(__IO uint32_t nTime);

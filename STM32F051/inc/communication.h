@@ -18,4 +18,5 @@ typedef enum
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
 void uart_send_temps(void);
+void uart_receive_msg(void);
 #endif /* __COMUNICATION_H */

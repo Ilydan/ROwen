@@ -25,9 +25,13 @@ extern uint16_t buzzer_beep_time;
 extern uint16_t buzzer_beep_time_counter;
 extern uint16_t buttons_delay[5];
 extern uint16_t display_block;
-
 extern uint8_t display[4];
 extern const uint8_t charset[4][255];
+extern bool b1_flag;
+extern bool b2_flag;
+extern bool b3_flag;
+extern bool b4_flag;
+typedef enum {A=0,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,Y,Z,X} alphabet;
 /* Exported macro ------------------------------------------------------------*/
 #define button_press_delay			500
 
@@ -37,9 +41,8 @@ void buzzer_speed(uint16_t speed);
 void buzzer(e_buzzer_mode b_mode, uint8_t beep_count);
 void button_handler(e_buttons button);
 void encoder_handler(void);
-void write_to_display(uint8_t byte, uint8_t display_id);
-void number_to_display(float number_in, uint8_t dot_pos);
-void set_i2c_led(uint8_t led_id, bool state);
+void write_num_to_display(uint16_t number);
+void write_txt_to_display(alphabet leftChar, alphabet middleChar, alphabet rightChar);
 #endif /* __HMI_H */
 
 
