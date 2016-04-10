@@ -21,5 +21,6 @@ int main(void)
 	{
 		period_time_check_flags();
 		speed_counter++;
+		
 	}
 }

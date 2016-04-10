@@ -136,8 +136,8 @@ void get_tcn75_temp(uint8_t session_id, e_direction direction)
 }
 void get_ext_ADC_voltages(uint8_t session_id, e_direction direction)
 {
-	static uint8_t ADC_channel = 0;
-	static uint8_t attempts = 0;
+	static uint16_t ADC_channel = 2;
+//	int attempts = 0;
 	int32_t ADC_read;
 
 	if(direction == transmit)
@@ -145,31 +145,25 @@ void get_ext_ADC_voltages(uint8_t session_id, e_direction direction)
 		parameters_master[0] = (0x1<<7)|(ADC_channel<<5)|0x1F;
 	}else
 	{
-		if((transfer_data_master[3]>>7 & 0x01) != 1)	// check RDY flag
-		{
-			/*
-				ADC_read*1.953125f => napeti v uV
-				K thermocouple -> 40uV/stupenC
-				ADC_read/20.48 = stupne C
-			*/
-			ADC_read = (int32_t)(((uint32_t)transfer_data_master[0]<<24) |\
-						((uint32_t)transfer_data_master[1]<<16) |\
-						((uint32_t)transfer_data_master[2]<<8))/256;
-
-			s_system.s_power.ADC_uvolt[(transfer_data_master[3]>>5) & 0x03] = (int32_t)(ADC_read*1.953125f);							// measure volatage on thermoclouple [uV]
-			s_system.s_temp.thermocouple[(transfer_data_master[3]>>5) & 0x03] = (ADC_read/20.48f)+s_system.s_temp.thermocouple_board;	// convert thermocouple voltage to temperature [degree C]
-
-			if(++ADC_channel <= 3)
-				i2c_send_session(session_get_ext_ADC_voltages,ADC_EXT_ADDRESS); // measure next channel
-			else
-			{
-				ADC_channel = 0;
-			}
-			attempts = 0;
-		}else
-		{
-			if(++attempts < 10)
-				i2c_send_session(session_get_ext_ADC_voltages,ADC_EXT_ADDRESS);
-		}
+		ADC_read = (int32_t)(((uint32_t)transfer_data_master[0]<<24) |  
+			((uint32_t)transfer_data_master[1]<<16) | 
+			((uint32_t)transfer_data_master[2]<<8))/256;
+		
+		/*
+			ADC_read*1.953125f => napeti v uV
+			K thermocouple -> 40uV/stupenC
+			ADC_read/20.48 = stupne C
+		*/
+		
+		s_system.s_power.ADC_uvolt[(transfer_data_master[3]>>5) & 0x03] = (int32_t)(ADC_read*1.953125f);
+		s_system.s_temp.thermocouple[(transfer_data_master[3]>>5) & 0x03] = (ADC_read/20.48f)+s_system.s_temp.thermocouple_board;
+		
+//		if(ADC_channel++ < 3 && attempts++ < 10)
+//			i2c_send_session(session_get_ext_ADC_voltages,ADC_EXT_ADDRESS);
+//		else
+//		{
+//			ADC_channel = 0;
+//			attempts = 0;
+//		}
 	}
 }

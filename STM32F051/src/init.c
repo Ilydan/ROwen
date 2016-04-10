@@ -31,15 +31,16 @@ void initialization(void)
 	init_ADC();
 	init_USART();
 	init_Triacs();
+//	init_I2C();
 //	init_Flash();
 }
 void init_SysTick(void)
 {
 	if (SysTick_Config(SystemCoreClock / 1000))
-	{ 
-		/* Capture error */ 
-		while (1);
-	}
+  { 
+    /* Capture error */ 
+    while (1);
+  }
 }
 void init_I2C(void)
 {
@@ -103,12 +104,13 @@ void init_Board_HMI(void)
 	GPIO_InitTypeDef GPIO_InitStructure;
 	EXTI_InitTypeDef EXTI_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
-
-	/* Enable Clocks */
+  
+	/* Enable the GPIO Clock */
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOB, ENABLE);
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 
+	
 	/* =========== Init 2 LEDs =========== */
 	/* set all LEDs to Off */
 	GPIO_SetBits(GPIOB,GPIO_Pin_6 | GPIO_Pin_7);
@@ -119,7 +121,7 @@ void init_Board_HMI(void)
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
-
+	
 	/* =========== Init Buzzer =========== */
 	/* set buzzer to off */
 	GPIO_SetBits(GPIOB,GPIO_Pin_15);
@@ -130,7 +132,7 @@ void init_Board_HMI(void)
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
-
+	
 	/* =========== Init Buttons =========== */
 	/* Configure Buttons pins as input */
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5 | GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14;
@@ -153,15 +155,6 @@ void init_Board_HMI(void)
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 
-	/* =========== Init GPIO pins outputing on power board =========== */ // previously AC_sense pins
-	/* Configure pins as output */
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_1 | GPIO_Pin_3;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-
 	/* =========== Init Encoder =========== */
 	/* Configure Encoder pins as input */	
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
@@ -170,27 +163,23 @@ void init_Board_HMI(void)
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
-
+	
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_15;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
-
+	
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 	/* Connect EXTI Lines to Encoder GPIO Pins */
 	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOB, EXTI_PinSource3);	//enc A output
-	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource15);	//enc B output
 	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOB, EXTI_PinSource4);	//enc button
 
 	/* Configure encoder EXTI line */
 	EXTI_InitStructure.EXTI_Line = EXTI_Line3;
 	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;  
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;  
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-	EXTI_Init(&EXTI_InitStructure);
-
-	EXTI_InitStructure.EXTI_Line = EXTI_Line15;
 	EXTI_Init(&EXTI_InitStructure);
 
 	/* Configure encoder EXTI switch line */
@@ -209,11 +198,12 @@ void init_Board_HMI(void)
 	NVIC_InitStructure.NVIC_IRQChannelPriority = 0x03;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure); 
-
+	
+	
 	/* Init displays */
 	i2c_send_session(session_expander_config,GPIO_EXPANDER_0_ADDRESS);
 	i2c_send_session(session_expander_config,GPIO_EXPANDER_1_ADDRESS);
-
+	
 	/* Init tcn75 temp sensor */
 	i2c_send_session(session_config_tcn75_temp,TEMP_TCN75A_ADDRESS);
 }
@@ -382,15 +372,15 @@ void init_Triacs(void)
 	GPIO_PinAFConfig(GPIOB, GPIO_PinSource0, GPIO_AF_1);
 	GPIO_PinAFConfig(GPIOB, GPIO_PinSource1, GPIO_AF_1);
 
-	/* Init Timer init structures */
 	TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
 	TIM_OCStructInit(&TIM_OCInitStructure);
 
 	/* Time base configuration */
-	TIM_TimeBaseStructure.TIM_Period = 1000-1;
+	TIM_TimeBaseStructure.TIM_Period = 1000;
 	TIM_TimeBaseStructure.TIM_Prescaler = (uint16_t) (SystemCoreClock / 1000) - 1;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+
 	TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
 
 	/* Output Compare Active Mode configuration: Channel1 */

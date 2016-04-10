@@ -11,7 +11,13 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 uint32_t real_time = 0;		//presnost = 0.1s
+uint32_t setPoint;
+uint32_t start_time;
+uint8_t tempAlarmTimer = 0;
+float profile[10] = {0, 300, 300, 300, 420, 300, 490, 300, 685, 20};
+//float profile[10] = {0, 25, 300, 150, 420, 150, 600, 250, 1000, 20};
 bool up = true;
+
 uint8_t TIM_10MS_COUNTER;
 uint16_t TIM_100MS_COUNTER;
 uint16_t TIM_1000MS_COUNTER;
@@ -91,6 +97,48 @@ void period_time_check_flags(void)
 
 void tim_1ms_loop(void)
 {
+	if(b2_flag){
+			write_txt_to_display(T,M,P);
+	}
+	
+	if(b1_flag){
+				
+		uint32_t actual_time = 0.1*start_time;
+		double k; 
+		int16_t q;
+		
+		if(actual_time >= profile[0])
+			{
+				k = y[0].k;
+				q = y[0].q;
+			}
+		if(actual_time >= profile[2])	 
+			{
+				k = y[1].k;
+				q = y[1].q;
+			}
+		if(actual_time >= profile[4])	 
+			{
+				k = y[2].k;
+				q = y[2].q;
+			}
+		if(actual_time >= profile[6])	 
+			{
+				k = y[3].k;
+				q = y[3].q;
+			}
+		if(actual_time >= profile[8])	 
+			{
+				k = y[4].k;
+				q = y[4].q;
+			}
+		
+			setPoint = 0.1*k*start_time + q;
+			triac_set_duty(both_heat, PID_controller(setPoint));		
+		}
+	
+	
+		
 	for(int i = 0; i <= 4; i++)
 	{
 		if(buttons_delay[i] > 0)
@@ -135,15 +183,19 @@ void tim_1ms_loop(void)
 void tim_10ms_loop(void)
 {
 	i2c_process_session();
+	
 }
 
 void tim_100ms_loop(void)
 { 
 	real_time++;
+	if(b1_flag){
+		start_time++;
+	}
 	i2c_send_session(session_get_ext_ADC_voltages,ADC_EXT_ADDRESS);
 	ADC_read();
 	i2c_send_session(session_get_tcn75_temp,TEMP_TCN75A_ADDRESS); //get temp from TCN75A
-	number_to_display(s_system.s_temp.thermocouple[2], 0);
+	write_num_to_display(s_system.s_temp.thermocouple[2]);
 	
 //	if(up)
 //	{
@@ -161,8 +213,14 @@ void tim_1000ms_loop(void)
 {
 //	triac_set_duty(1,test_counter);
 //	triac_set_duty(2,100-test_counter);
-
-	uart_send_temps();
+	
+	
+	if(b1_flag)
+		{
+		OverTempBeep();
+		}
+	
+		uart_send_temps();
 	
 	/* running LED blink */
 	GPIOB->ODR ^= GPIO_Pin_7;

@@ -7,9 +7,6 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
-void encoder_cw(void);
-void encoder_ccw(void);
-void write_buffer_to_display(void);
 /* Private functions ---------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
@@ -20,44 +17,55 @@ uint8_t buzzer_beeps_counter = 0;
 uint16_t buzzer_beep_time_counter = 0;
 uint16_t buzzer_beep_time = 0;
 e_buzzer_mode buzzer_mode = off;
+bool b1_flag = false;
+bool b2_flag = false;
+bool b3_flag = false;
+bool b4_flag = false;
 
-uint8_t display[4] = {0xFF,0xFF,0xFF,0xFF};
-/*         ______
+
+uint8_t display[4] = {1};
+/*   display[0]
+					 ______
           /  6  /
          /7   5/
         /--4--/
-       /3   1/
+       /1   3/
       /__2__/ O 8
 */
-const uint8_t segments[4][8] = {
-	{0x20,0x40,0x80,0x01,0x08,0x04,0x02,0x10},
-	{0x04,0x02,0x01,0x80,0x10,0x20,0x40,0x08},
-	{0x02,0x04,0x08,0x10,0x80,0x40,0x20,0x01},
-	{0}
-};
+/*   display[1]      
+					 ______
+          /  3  /
+         /2   4/
+        /--1--/
+       /8   6/
+      /__7__/ O 5
+*/
+/*	display[2]      
+					 ______
+          /  2  /
+         /3   1/
+        /--4--/
+       /5   7/
+      /__6__/ O 8
+
+*/
+//const uint8_t segments[4][8] = {
+//{0x20,0x40,0x80,0x01,0x08,0x04,0x02,0x10},
+//{0x04,0x02,0x01,0x80,0x10,0x20,0x40,0x08},
+//{0x02,0x04,0x08,0x10,0x80,0x40,0x20,0x01},
+//{0}};
+/* 0,1,2,3,4,5,6,7,8,9 */
 const uint8_t numbers[3][10] = {
 	{0x11,0xD7,0x32,0x92,0xD4,0x98,0x18,0xD3,0x10,0x90},
 	{0x88,0xEB,0x4C,0x49,0x2B,0x19,0x18,0xCB,0x08,0x09},
 	{0x11,0x7d,0x23,0x29,0x4D,0x89,0x81,0x3D,0x01,0x09}
 };
-
-const struct s_encoder{
-	GPIO_TypeDef * port_A;
-	GPIO_TypeDef * port_B;
-	uint32_t pin_A;
-	uint32_t pin_B;
-}encoder_hw = {
-	.port_A = GPIOA,
-	.port_B = GPIOB,
-	.pin_A = GPIO_Pin_15,
-	.pin_B = GPIO_Pin_3
-};
-
-int8_t enc_count = 0;
-uint8_t enc_val = 0;
-
-
-
+/* A,b,C,d,E,F,g,H,I,J,K.,L,M,n,O,P,q,r,S,t,U,v,y,Z,blank char X */
+const uint8_t letters[3][25] = {
+	{0x50,0x1C,0x39,0x16,0x38,0x78,0x90,0x54,0x7D,0x17,0x44,0x3D,0x5B,0x5E,0x11,0x70,0xD0,0x7E,0x98,0x3C,0x15,0x1F,0x94,0x32,0xFF},
+	{0x0A,0x38,0x9C,0x68,0x1C,0x1E,0x09,0x2A,0xBE,0xE8,0x22,0xBC,0xDA,0x7A,0x88,0x0E,0x0B,0x7E,0x19,0x3C,0xA8,0xF8,0x29,0x4C,0xFF},
+	{0x05,0xC1,0x93,0x61,0x83,0x87,0x09,0x45,0xD7,0x71,0x44,0xD3,0xB5,0xE5,0x11,0x07,0x0D,0xE7,0x89,0xC3,0x51,0xF1,0x49,0x23,0xFF}
+	};
 
 void buzzer(e_buzzer_mode b_mode, uint8_t beep_count)
 {
@@ -114,11 +122,22 @@ void button_handler(e_buttons button)
 	}
 	/* ====== BUTTONS =========== */
 	if(button == button_1)
-	{
+	{	
 		beep = true;
+		b1_flag = !b1_flag;
+		start_time = 0;
+		struct ramp_equation* y = ProfileBuilder(profile);
+			if(!b1_flag)
+			{
+				triac_set_duty(both_heat, 0);
+				setPoint = 0;
+				display[3] = 0xFF;
+			}
 	}
 	if(button == button_2)
 	{
+		b2_flag = !b2_flag;
+		
 		beep = true;
 	}
 	if(button == button_3)
@@ -127,7 +146,12 @@ void button_handler(e_buttons button)
 	}
 	if(button == button_4)
 	{
-		
+		triac_set_duty(both_heat, 0);
+		setPoint = 0;
+		b1_flag = false;
+		b2_flag = false;
+		b3_flag = false;
+		b4_flag = false;
 		beep = true;
 	}
 	if(beep)
@@ -137,119 +161,54 @@ void button_handler(e_buttons button)
 	}
 	buttons_delay[button] = button_press_delay;
 }
-
 void encoder_handler(void)
 {
-	static const int8_t lookup_table[] = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0};
-
-	enc_val = enc_val << 2;
-	enc_val = enc_val | ((!!(encoder_hw.port_A->IDR & encoder_hw.pin_A) << 1) | (!!(encoder_hw.port_B->IDR & encoder_hw.pin_B)));
-
-	enc_count += lookup_table[enc_val & 0xf];
-	if(((enc_val & 0x3) == 3) && ((enc_count >= 4) | (enc_count <= -4)))
-	{
-		if(enc_count >= 4)
-			encoder_cw();
-		else 
-			encoder_ccw();
-		
-		enc_count = 0;
-	}
-}
-void encoder_cw(void)
-{
 	if(TIM3->CR1 & TIM_CR1_CEN)
 	{
+		GPIOB->ODR ^= GPIO_Pin_7; // toggle
 		display_block = 0;
 		
-		triac_modify_duty(top_heat,100);
-		triac_modify_duty(bottom_heat,100);
-		
-		display_block = 3000;
-		buzzer(beeps,1);
-		buzzer_speed(3);
-	}
-}
-void encoder_ccw(void)
-{
-	if(TIM3->CR1 & TIM_CR1_CEN)
-	{
-		display_block = 0;
-		
-		triac_modify_duty(top_heat,-100);
-		triac_modify_duty(bottom_heat,-100);
-		
-		display_block = 3000;
-		buzzer(beeps,1);
-		buzzer_speed(3);
-	}
-}
-
-void write_buffer_to_display(void)
-{
-	i2c_send_session(session_expander_set,GPIO_EXPANDER_0_ADDRESS);
-	i2c_send_session(session_expander_set,GPIO_EXPANDER_1_ADDRESS);
-}
-/***************** DISPLAY  ****************/
-void write_to_display(uint8_t byte, uint8_t display_id)
-{
-	display[display_id] = byte;
-	write_buffer_to_display();
-}
-void number_to_display(float number_in, uint8_t dot_pos)
-{
-	/* Show precision, as "dot_pos", not implemented yet!!! */
-	if(!display_block)
-	{
-		if(number_in >= 1000)
-			number_in = 999;
-		uint32_t number = number_in * 100;
-		uint8_t count = 0;
-		uint8_t disp_buff[5];
-		display[0] = 0xFF;
-		display[1] = 0xFF;
-		display[2] = 0xFF;
-
-		while(number)
+		if(GPIO_ReadInputDataBit(GPIOA,GPIO_Pin_15) == Bit_SET)
 		{
-			disp_buff[count] = (uint16_t) number % 10;
-			number /= 10;
-			count++;
-		}
-
-		if(count == 1 || count == 2 || count == 3 || dot_pos == 1)
-			display[0] = ~segments[0][7];
-		else if(count == 4 || dot_pos == 2)
-			display[1] = ~segments[1][7];
-
-		while(count < 3)
-		{
-			disp_buff[count] = 0;
-			count++;
-		}
-		if(!number_in)
-		{
-			display[2] = numbers[0][0];
+			triac_modify_duty(top_heat,100);
+			triac_modify_duty(bottom_heat,100);
 		}else
 		{
-			display[0] &= numbers[0][disp_buff[count-1]];
-			display[1] &= numbers[1][disp_buff[count-2]];
-			display[2] &= numbers[2][disp_buff[count-3]];
+			triac_modify_duty(top_heat,-100);
+			triac_modify_duty(bottom_heat,-100);
 		}
-		write_buffer_to_display();
+		display_block = 3000;
+		buzzer(beeps,1);
+		buzzer_speed(3);
 	}
 }
-/***************** TOP LEDS  ****************/
-void set_i2c_led(uint8_t led_id, bool state)
+/***************** DISPLAY  ****************/
+void write_num_to_display(uint16_t number)
 {
-	static const uint8_t led_matrix[7] = {6,5,4,3,2,1,0};
-	if(state)
+	uint8_t display_out = 3;
+	if(!display_block)
 	{
-		display[3] &= ~(1<<led_matrix[led_id]);
-		
-	}else
-	{
-		display[3] |= (1<<led_matrix[led_id]);
+		display[0] = 0xff;
+		display[1] = 0xff;
+		display[2] = 0xff;
+		if(!number)
+			display[2] = numbers[2][0];
+		while(number && display_out)
+		{
+			display[display_out-1] = numbers[display_out-1][number % 10];
+			display_out--;
+			number /= 10;
+		}
+		i2c_send_session(session_expander_set,GPIO_EXPANDER_0_ADDRESS);
+		i2c_send_session(session_expander_set,GPIO_EXPANDER_1_ADDRESS);
 	}
-	write_buffer_to_display();
 }
+void write_txt_to_display(alphabet leftChar, alphabet middleChar, alphabet rightChar)
+	{
+		display_block = 1000;
+		display[0] = letters[0][(uint8_t)leftChar];
+		display[1] = letters[1][(uint8_t)middleChar];
+		display[2] = letters[2][(uint8_t)rightChar];
+		i2c_send_session(session_expander_set,GPIO_EXPANDER_0_ADDRESS);
+		i2c_send_session(session_expander_set,GPIO_EXPANDER_1_ADDRESS);
+	}	

@@ -93,24 +93,42 @@ void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
 	Period_timer_increment();
+	
 }
 
 /******************************************************************************/
 /*                 STM32F0xx Peripherals Interrupt Handlers                   */
 /*  Add here the Interrupt Handler for the used peripheral(s) (PPP), for the  */
 /*  available peripheral interrupt handler's name please refer to the startup */
-/*  file (startup_stm32f0xx.s).                                               */
+/*  file (startup_stm32f0xx.s).                                            */
 /******************************************************************************/
 
+/**
+  * @brief  This function handles PPP interrupt request.
+  * @param  None
+  * @retval None
+  */
+/*void PPP_IRQHandler(void)
+{
+}*/
 
+
+/**
+  * @brief  This function handles External line 0 and 1 interrupt requests.
+  * @param  None
+  * @retval None
+  */
 void EXTI2_3_IRQHandler(void)
 {
 	if(EXTI_GetITStatus(EXTI_Line3) != RESET)
 	{
 		encoder_handler();
+		/* Clear the EXTI line 5 pending bit */
 		EXTI_ClearITPendingBit(EXTI_Line3);
 	}
 }
+
+
 void EXTI4_15_IRQHandler(void)
 {
 	if(EXTI_GetITStatus(EXTI_Line4) != RESET)
@@ -119,6 +137,7 @@ void EXTI4_15_IRQHandler(void)
 		{
 			button_handler(button_enc);
 		}
+		/* Clear the EXTI line 5 pending bit */
 		EXTI_ClearITPendingBit(EXTI_Line4);
 	}
 	if(EXTI_GetITStatus(EXTI_Line5) != RESET)
@@ -127,6 +146,7 @@ void EXTI4_15_IRQHandler(void)
 		{
 			button_handler(button_4);
 		}
+		/* Clear the EXTI line 5 pending bit */
 		EXTI_ClearITPendingBit(EXTI_Line5);
 	}
 	if(EXTI_GetITStatus(EXTI_Line12) != RESET)
@@ -135,6 +155,7 @@ void EXTI4_15_IRQHandler(void)
 		{
 			button_handler(button_3);
 		}
+		/* Clear the EXTI line 12 pending bit */
 		EXTI_ClearITPendingBit(EXTI_Line12);
 	}
 	if(EXTI_GetITStatus(EXTI_Line13) != RESET)
@@ -143,6 +164,8 @@ void EXTI4_15_IRQHandler(void)
 		{
 			button_handler(button_2);
 		}
+		
+		/* Clear the EXTI line 13 pending bit */
 		EXTI_ClearITPendingBit(EXTI_Line13);
 	}
 	if(EXTI_GetITStatus(EXTI_Line14) != RESET)
@@ -151,14 +174,14 @@ void EXTI4_15_IRQHandler(void)
 		{
 			button_handler(button_1);
 		}
+		/* Clear the EXTI line 14 pending bit */
 		EXTI_ClearITPendingBit(EXTI_Line14);
 	}
-	if(EXTI_GetITStatus(EXTI_Line15) != RESET)
-	{
-		encoder_handler();
-		EXTI_ClearITPendingBit(EXTI_Line15);
-	}
 }
+
+
+
+
 
 void I2C1_IRQHandler(void)
 {
@@ -214,7 +237,7 @@ void I2C1_IRQHandler(void)
 	}
 	if(I2C_GetITStatus(I2C1,I2C_IT_BERR) != RESET)
 	{
-		// chyba na zbernici!!!
+		// chyba na sbernici!!!
 		
 		I2C_ClearITPendingBit(I2C1, I2C_IT_BERR);
 	}
@@ -265,3 +288,9 @@ void USART1_IRQHandler(void)
 			*TX_Buffer++;
 	}
 }
+/**
+  * @}
+  */ 
+
+
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

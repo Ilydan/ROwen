@@ -36,6 +36,7 @@ void USART_puts(USART_TypeDef* USARTx, volatile char *s)
 	}
 }
 
+
 void uart_parse(char* string)
 {
 	//int n = sscanf(string, "#%d*%d/%d*%d/%d*%d/%d*%d/%d*%d/%d*%d/%d*%d/%d*%d/%d*%d/%d*%dend", 
@@ -53,4 +54,5 @@ void uart_parse(char* string)
 //		ramp[9].duration, ramp[9].final_temp
 	);
 }
+
 
